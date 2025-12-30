@@ -1,0 +1,87 @@
+/dts-v1/;
+
+/* Core Snapdragon X and Dell base definitions */
+#include "hamoa.dtsi"
+#include "x1-dell-thena.dtsi"
+
+/ {
+    model = "Dell Latitude 5455";
+    compatible = "dell,latitude-5455", "qcom,x1p64100", "qcom,x1e80100";
+};
+
+
+/* Add the sound model here for your specific device */
+&sound {
+   model = "X1E80100-Dell-Latitude-7455";
+};
+
+/* --- Display & GPU Acceleration --- */
+&mdss {
+    status = "okay";
+};
+
+&mdss_dp0 {
+    status = "okay";
+};
+
+&gpu {
+    status = "okay";
+};
+
+/* --- Specific GPU Firmware Fix --- */
+&gpu_zap_shader {
+    firmware-name = "qcom/x1e80100/dell/latitude-7455/qcdxkmsuc8380.mbn";
+};
+
+&iris {
+    firmware-name = "qcom/x1e80100/dell/latitude-7455/qcvss8380.mbn";
+    status = "okay";
+};
+
+/* --- Sound System (Your Working 5455 Map) --- */
+&swr1 {
+    status = "okay";
+    left_spkr: wsa8845@0,0 {
+        compatible = "sdw217,8845,0";
+        reg = <0 0>;
+    };
+};
+
+&swr2 {
+    status = "okay";
+    dmic_left: wcd938x@0,4 {
+        compatible = "sdw217,10d,0";
+        reg = <0 4>;
+    };
+};
+
+&swr3 {
+    status = "okay";
+    dmic_right: wcd938x@0,3 {
+        compatible = "sdw217,10d,0";
+        reg = <0 3>;
+    };
+};
+
+/* Direct address for SWR4 to handle the Right Speaker */
+&{/soc@0/soundwire@6d30000} {
+    status = "okay";
+    label = "swr4"; 
+    right_spkr: wsa8845@0,1 {
+        compatible = "sdw217,8845,0";
+        reg = <0 1>;
+    };
+};
+
+/* --- DSP Firmware Overrides --- */
+&remoteproc_adsp {
+    firmware-name = "qcom/x1e80100/dell/latitude-7455/qcadsp8380.mbn",
+                    "qcom/x1e80100/dell/latitude-7455/adsp_dtbs.elf";
+    status = "okay";
+};
+
+&remoteproc_cdsp {
+    firmware-name = "qcom/x1e80100/dell/latitude-7455/qccdsp8380.mbn",
+                    "qcom/x1e80100/dell/latitude-7455/cdsp_dtbs.elf";
+    status = "okay";
+};
