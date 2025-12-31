@@ -187,10 +187,15 @@ Save and exit.
 sync
 sudo umount /mnt/usb
 ```
-## Then copy x1p64100-dell-latitude-5455.dtb to /boot/dts/qcom/ and link the grub config to it
+## Then copy x1p64100-dell-latitude-5455.dtb x1e80100-dell-latitude-7455.dtb and to /boot/dts/qcom/ and link the grub config to the 5455 dtb file
 
 ##  Fix battery
-
+Boot once into x1e80100-dell-latitude-7455.dtb (simply change the grub using e command when in grub menu) and then run:
+```bash
+    sudo apt install qcom-firmware-extract
+    sudo qcom-firmware-extract
+```
+Then
 ```bash
     sudo apt install ubuntu-x1e-settings
 ```
