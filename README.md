@@ -20,44 +20,6 @@ mkdir -p /boot/dtbs/qcom/
 sudo cp x1p64100-dell-latitude-5455.dtb /boot/dtbs/qcom/
 
 ```
-
-### Make a new GRUB entry
-
-Create a custom GRUB script to ensure your Snapdragon-specific kernel and DTB are loaded first.
-
-1. Create the script:
-`sudo nano /etc/grub.d/09_snapdragon`
-2. Paste the following configuration:
-
-```sh
-#!/bin/sh
-exec tail -n +3 $0
-menuentry 'Ubuntu Snapdragon' --class ubuntu --class gnu-linux --class gnu --class os $menuentry_id_option 'gnulinux-simple-05b41e37-dbcf-4eb7-9703-a3c03ab9080e' {
-        recordfail
-        load_video
-        gfxmode $linux_gfx_mode
-        insmod gzio
-        if [ x$grub_platform = xxen ]; then insmod xzio; insmod lzopio; fi
-        insmod part_gpt
-        insmod ext2
-        search --no-floppy --fs-uuid --set=root 05b41e37-dbcf-4eb7-9703-a3c03ab9080e
-        devicetree /boot/dtbs/qcom/x1p64100-dell-latitude-5455.dtb
-        linux   /boot/vmlinuz-6.17.0-8-qcom-x1e root=UUID=05b41e37-dbcf-4eb7-9703-a3c03ab9080e ro  quiet splash console=tty0 crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G-:4096M $vt_handoff
-        initrd  /boot/initrd.img-6.17.0-8-qcom-x1e
-}
-
-```
-
-3. Make the script executable and update GRUB:
-
-```bash
-sudo chmod +x /etc/grub.d/09_snapdragon
-sudo update-grub
-
-```
-
-
-
 ---
 
 ## Modify an Ubuntu ISO Using a Writable USB
@@ -187,7 +149,63 @@ Save and exit.
 sync
 sudo umount /mnt/usb
 ```
+
+## Boot 
+
 ## Then copy x1p64100-dell-latitude-5455.dtb x1e80100-dell-latitude-7455.dtb and to /boot/dts/qcom/ and link the grub config to the 5455 dtb file
+
+### Make a new GRUB entry
+
+Create a custom GRUB script to ensure your Snapdragon-specific kernel and DTB are loaded first.
+
+1. Create the script:
+`sudo nano /etc/grub.d/09_snapdragon`
+2. Paste the following configuration:
+
+```sh
+#!/bin/sh
+set -e
+
+# These variables are provided by the GRUB environment when update-grub runs
+. /usr/share/grub/grub-mkconfig_lib
+
+# Automatically detect the root device and UUID
+root_device=$(grub-probe --target=device /)
+root_uuid=$(grub-probe --device $root_device --target=fs_uuid)
+
+echo "Found root UUID: $root_uuid" >&2
+
+cat << EOF
+menuentry 'Ubuntu Snapdragon' --class ubuntu --class gnu-linux --class gnu --class os {
+    recordfail
+    load_video
+    insmod gzio
+    insmod part_gpt
+    insmod ext2
+    
+    # This searches for the drive dynamically at boot time
+    search --no-floppy --fs-uuid --set=root $root_uuid
+    
+    echo "Loading DeviceTree..."
+    devicetree /boot/dtbs/qcom/x1p64100-dell-latitude-5455.dtb
+    
+    echo "Loading Linux kernel..."
+    linux   /boot/vmlinuz-6.17.0-8-qcom-x1e root=UUID=$root_uuid ro quiet splash console=tty0 crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G-:4096M \$vt_handoff
+    
+    echo "Loading initial ramdisk..."
+    initrd  /boot/initrd.img-6.17.0-8-qcom-x1e
+}
+EOF
+
+```
+
+3. Make the script executable and update GRUB:
+
+```bash
+sudo chmod +x /etc/grub.d/09_snapdragon
+sudo update-grub
+
+```
 
 ##  Fix battery
 Boot once into x1e80100-dell-latitude-7455.dtb (simply change the grub using e command when in grub menu) and then run:
