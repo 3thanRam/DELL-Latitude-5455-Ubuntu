@@ -210,10 +210,11 @@ sudo update-grub
 ##  Fix battery
 Boot once into x1e80100-dell-latitude-7455.dtb (simply change the grub using e command when in grub menu) and then run:
 ```bash
-    sudo apt install qcom-firmware-extract
-    sudo qcom-firmware-extract
+sudo apt install qcom-firmware-extract
+sudo qcom-firmware-extract
 ```
 Then
 ```bash
-    sudo apt install ubuntu-x1e-settings
+sudo apt install ubuntu-x1e-settings
 ```
+
