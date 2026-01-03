@@ -217,4 +217,7 @@ Then
 ```bash
 sudo apt install ubuntu-x1e-settings
 ```
+##  GPU stuff
+get gen70500_sqe.fw and gen70500_gmu.bin from https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/
+Then mv them into /lib/firmware/qcom/x1e80100/
 
