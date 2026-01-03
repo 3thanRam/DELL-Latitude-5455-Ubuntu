@@ -1,6 +1,8 @@
 # DELL-Latitude-5455-Ubuntu
 My attempt at getting Ubuntu running on the DELL Latitude 5455 (Snapdragon X Plus X1P-64-100).
 
+I don't know what I'm doing you can copy this at your own risk
+
 ### How to generate the DTB
 Run these commands within your local kernel source tree to compile the device tree binary:
 
