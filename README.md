@@ -228,6 +228,13 @@ Then
 sudo apt install ubuntu-x1e-settings
 ```
 ##  GPU stuff
-get gen70500_sqe.fw and gen70500_gmu.bin from https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/
-Then mv them into /lib/firmware/qcom/x1e80100/
 
+```bash
+cd /lib/firmware/qcom/x1e80100/dell/latitude-7455/
+sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/gen70500_sqe.fw 
+sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/gen70500_gmu.bin
+sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/x1e80100/gen70500_zap.mbn
+```
+
+## Misc
+Find qcvss8380.mbn in windows partition and move to /lib/firmware/qcom/x1e80100/dell/latitude-7455/
