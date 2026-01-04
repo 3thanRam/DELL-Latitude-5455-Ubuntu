@@ -3,6 +3,14 @@ My attempt at getting Ubuntu running on the DELL Latitude 5455 (Snapdragon X Plu
 
 I don't know what I'm doing you can copy this at your own risk
 
+You should dual boot with windows in order to benefit from windows firmware updates and to extract firmware from windows partition
+
+some links:
+
+https://discourse.ubuntu.com/t/ubuntu-concept-snapdragon-x-elite/48800
+
+https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
+
 ### How to generate the DTB
 Run these commands within your local kernel source tree to compile the device tree binary:
 
