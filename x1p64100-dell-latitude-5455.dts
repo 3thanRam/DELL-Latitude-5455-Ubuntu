@@ -17,10 +17,6 @@ dts-v1/;
     status = "disabled";
 };
 
-&remoteproc_adsp {
-    status = "disabled";
-};
-
 /* Disable SoundWire Masters 1, 2, and 3 */
 &swr1 { status = "disabled"; };
 &swr2 { status = "disabled"; };
