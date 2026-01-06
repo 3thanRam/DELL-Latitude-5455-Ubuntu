@@ -11,6 +11,20 @@ https://discourse.ubuntu.com/t/ubuntu-concept-snapdragon-x-elite/48800
 
 https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
 
+
+| Feature | Status | Notes |
+| ----------------------- | :---: |------------------------------------------------------------------------------------------------------------|
+| Display | 🟢 | Working but no brightness control (use gnome extension)|
+| WIFI/BT | 🟢 | Working |
+| Battery Monitor | 🟢 | Working |
+| Battery Charging | 🟢 | Working |
+| Keyboard/Trackpad | 🟢 | Working |
+| USB | 🟢 | Working |
+| Power Management | 🟡 | Usable but poor battery life |
+| GPU | 🟡 | acceleration seems to work, but doesn't seem energy efficient|
+| Audio | 🔴 | Broken needs audioreach topology/alsa ucm conf|
+| Camera | 🔴 | Hardware invisible |
+
 ### How to generate the DTB
 Run these commands within your local kernel source tree to compile the device tree binary:
 
