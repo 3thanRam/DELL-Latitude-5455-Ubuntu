@@ -21,6 +21,7 @@ https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
 | Keyboard/Trackpad | 🟢 | Working |
 | USB | 🟢 | Working |
 | Power Management | 🟡 | Usable but poor battery life |
+| Sleep/suspend | 🟡 | Sometimes unable to wake from sleep/suspend |
 | GPU | 🟡 | acceleration seems to work, but doesn't seem energy efficient|
 | Audio | 🔴 | Broken needs audioreach topology/alsa ucm conf|
 | Camera | 🔴 | Hardware invisible |
