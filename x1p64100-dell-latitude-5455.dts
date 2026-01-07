@@ -4,12 +4,10 @@
 #include "x1-dell-thena.dtsi"
 
 / {
-    model = "Dell Latitude 5455";
-    compatible = "dell,latitude-5455", "qcom,x1p64100", "qcom,x1e80100";
+        model = "Dell Latitude 5455";
+        compatible = "dell,latitude-5455", "qcom,x1e80100";
 
-    /* --- 1. THE CPU MAP FIX --- */
-    /* Deleting the ghost cores from the power map is the #1 way to fix your fans */
-    cpus {
+        cpus {
         /delete-node/ cpu@10300; /* CPU7 */
         /delete-node/ cpu@20300; /* CPU11 */
 
@@ -21,11 +19,10 @@
                 /delete-node/ core3; /* This is CPU11 on your 10-core chip */
             };
         };
-    };
+        };
 };
 
-
-/* --- 2. POWER & INTERCONNECT STABILITY --- */
+/* Power & Interconnects */
 &rpmhpd {
     status = "okay";
 };
@@ -38,22 +35,16 @@
     status = "okay";
 };
 
-/* --- 3. GPU & FAN CONTROL --- */
+/* GPU */
 &gpu {
     status = "okay";
-    vdd-supply = <&vreg_s5j_1p2>;
-    vddcx-supply = <&vreg_s1f_0p7>;
-
-    zap-shader {
-        firmware-name = "qcom/x1e80100/gen70500_zap.mbn";
-    };
 };
 
 &gpu_zap_shader {
     firmware-name = "qcom/x1e80100/dell/latitude-7455/qcdxkmsuc8380.mbn";
 };
 
-/* --- 4. DISPLAY & VIDEO --- */
+/* Display */
 &mdss {
     status = "okay";
 };
@@ -62,12 +53,7 @@
     status = "okay";
 };
 
-&iris {
-    firmware-name = "qcom/x1e80100/dell/latitude-7455/qcvss8380.mbn";
-    status = "okay";
-};
-
-/* --- 5. DSP & SOUND (Keep Disabled) --- */
+/* Audio DSPs */
 &remoteproc_adsp {
     firmware-name = "qcom/x1e80100/dell/latitude-7455/qcadsp8380.mbn",
                     "qcom/x1e80100/dell/latitude-7455/adsp_dtbs.elf";
@@ -80,10 +66,7 @@
     status = "okay";
 };
 
-&sound { status = "disabled"; };
-&swr1 { status = "disabled"; };
-&swr2 { status = "disabled"; };
-&swr3 { status = "disabled"; };
-&{/soc@0/soundwire@6d30000} { status = "disabled"; };
-
-
+/* Audio  */
+&sound {
+    model = "X1E80100-Dell-Latitude-7455";
+};
