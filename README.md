@@ -23,7 +23,7 @@ https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
 | Power Management | 🟡 | Usable but poor battery life |
 | Sleep/suspend | 🟡 | Sometimes unable to wake from sleep/suspend |
 | GPU | 🟡 | acceleration seems to work, but doesn't seem energy efficient|
-| Audio | 🔴 | Broken needs audioreach topology/alsa ucm conf|
+| Audio | 🟡 | EXPERIMENTAL Pipewire patch over 7455 topology
 | Camera | 🔴 | Hardware invisible |
 
 ### How to generate the DTB
@@ -254,6 +254,15 @@ sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/vide
 sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/gen70500_gmu.bin
 sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/x1e80100/gen70500_zap.mbn
 ```
-
-## Misc
 Find qcvss8380.mbn in windows partition and move to /lib/firmware/qcom/x1e80100/dell/latitude-7455/
+
+## Sound
+
+Attempt this at your own risk this could damage your speakers
+
+```bash
+cd /lib/firmware/qcom/x1e80100/dell/latitude-7455/
+sudo ln -sf X1E80100-EVK-tplg.bin X1E80100-Dell-Latitude-7455-tplg.bin
+mkdir -p ~/.config/pipewire/pipewire.conf.d
+cp ~/Downloads/99-dell-5455-remap.conf ~/.config/pipewire/pipewire.conf.d/99-dell-5455-remap.conf
+```
