@@ -265,4 +265,5 @@ cd /lib/firmware/qcom/x1e80100/dell/latitude-7455/
 sudo ln -sf X1E80100-EVK-tplg.bin X1E80100-Dell-Latitude-7455-tplg.bin
 mkdir -p ~/.config/pipewire/pipewire.conf.d
 cp ~/Downloads/99-dell-5455-remap.conf ~/.config/pipewire/pipewire.conf.d/99-dell-5455-remap.conf
+pactl set-default-sink $(pactl list sinks short | grep "Dell-5455-Stereo-Remap" | awk '{print $2}')
 ```
