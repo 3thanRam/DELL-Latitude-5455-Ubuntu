@@ -70,3 +70,9 @@
 &sound {
     model = "X1E80100-Dell-Latitude-7455";
 };
+
+/* Video Encoder/Decoder (Hardware Video Acceleration) */
+&iris {
+    firmware-name = "qcom/x1e80100/dell/latitude-7455/qcvss8380.mbn";
+    status = "okay";
+};
