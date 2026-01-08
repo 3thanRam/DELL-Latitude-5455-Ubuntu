@@ -24,7 +24,7 @@ https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
 | Sleep/suspend | 🟡 | Sometimes unable to wake from sleep/suspend |
 | GPU | 🟡 | acceleration seems to work, but doesn't seem energy efficient|
 | Audio | 🟡 | EXPERIMENTAL Pipewire patch over 7455 topology
-| Camera | 🔴 | Hardware invisible |
+| Camera | 🟡 | EXPERIMENTAL Poor quality |
 
 ### How to generate the DTB
 Run these commands within your local kernel source tree to compile the device tree binary:
@@ -274,3 +274,11 @@ mkdir -p ~/.config/pipewire/pipewire.conf.d
 cp ~/Downloads/99-dell-5455-remap.conf ~/.config/pipewire/pipewire.conf.d/99-dell-5455-remap.conf
 pactl set-default-sink $(pactl list sinks short | grep "Dell-5455-Stereo-Remap" | awk '{print $2}')
 ```
+
+## Camera
+
+Update kernel: to https://github.com/alexVinarskis/linux.git
+
+Recompile dts using that fork
+
+Camera should work but be poor quality, fps and color seem wrong 
