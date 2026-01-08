@@ -22,7 +22,7 @@ https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
 | USB | 🟢 | Working |
 | Power Management | 🟡 | Usable but poor battery life |
 | Sleep/suspend | 🟡 | Sometimes unable to wake from sleep/suspend |
-| GPU | 🟡 | acceleration seems to work, but doesn't seem energy efficient|
+| GPU | 🟡 | Acceleration seems to work, but doesn't seem energy efficient|
 | Audio | 🟡 | EXPERIMENTAL Pipewire patch over 7455 topology
 | Camera | 🟡 | EXPERIMENTAL Poor quality |
 
@@ -281,4 +281,35 @@ Update kernel: to https://github.com/alexVinarskis/linux.git
 
 Recompile dts using that fork
 
+Add to /etc/grub.d/09_snapdragon :
+
+```bash
+menuentry 'Ubuntu Linaro Experimental (6.19)' --class ubuntu --class gnu-linux --class gnu --class os {
+    recordfail
+    load_video
+    insmod gzio
+    insmod part_gpt
+    insmod ext2
+    
+    # This searches for the drive dynamically at boot time
+    search --no-floppy --fs-uuid --set=root $root_uuid
+    
+    echo "Loading DeviceTree (Using original Ubuntu DTB)..."
+    # We are reusing the original DTB because the Linaro tree doesn't have the 5455 file yet.
+    devicetree /boot/dtbs/qcom/x1p64100-dell-latitude-5455.dtb
+    
+    echo "Loading Linux kernel 6.19..."
+    linux   /boot/vmlinuz-6.19.0-rc2+ root=UUID=$root_uuid ro quiet splash console=tty0 crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G-:4096M $vt_handoff
+    
+    echo "Loading initial ramdisk..."
+    initrd  /boot/initrd.img-6.19.0-rc2+
+}
+```
+
+Then:
+
+```bash
+sudo update-grub
+sudo reboot
+```
 Camera should work but be poor quality, fps and color seem wrong 
