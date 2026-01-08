@@ -229,7 +229,6 @@ EOF
 ```bash
 sudo chmod +x /etc/grub.d/09_snapdragon
 sudo update-grub
-
 ```
 
 ##  Fix battery
@@ -246,7 +245,7 @@ sudo apt install ubuntu-x1e-settings
 
 Copy contents of /lib/firmware/updates/qcom/x1e80100/dell/latitude-7455/ to /lib/firmware/qcom/x1e80100/dell/latitude-7455/
 
-##  GPU stuff
+##  GPU
 
 ```bash
 cd /lib/firmware/qcom/x1e80100/dell/latitude-7455/
@@ -255,6 +254,14 @@ sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/vide
 sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/x1e80100/gen70500_zap.mbn
 ```
 Find qcvss8380.mbn in windows partition and move to /lib/firmware/qcom/x1e80100/dell/latitude-7455/
+
+Additionally I experienced display freezing which I think is due to vulkan so i switched over to gl
+
+```bash
+echo 'GSK_RENDERER=gl' | sudo tee -a /etc/environment
+echo 'VK_ICD_FILENAMES=/dev/null' | sudo tee -a /etc/environment
+sudo reboot
+```
 
 ## Sound
 
