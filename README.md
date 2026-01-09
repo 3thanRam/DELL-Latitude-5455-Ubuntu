@@ -249,9 +249,9 @@ Copy contents of /lib/firmware/updates/qcom/x1e80100/dell/latitude-7455/ to /lib
 
 ```bash
 cd /lib/firmware/qcom/x1e80100/dell/latitude-7455/
-sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/gen70500_sqe.fw 
-sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/gen70500_gmu.bin
-sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/blob/video-firmware/qcom/x1e80100/gen70500_zap.mbn
+sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/raw/video-firmware/qcom/gen70500_sqe.fw
+sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/raw/video-firmware/qcom/gen70500_gmu.bin
+sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/raw/video-firmware/qcom/x1e80100/gen70500_zap.mbn
 ```
 Find qcvss8380.mbn in windows partition and move to /lib/firmware/qcom/x1e80100/dell/latitude-7455/
 
