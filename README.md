@@ -14,17 +14,17 @@ https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
 
 | Feature | Status | Notes |
 | ----------------------- | :---: |------------------------------------------------------------------------------------------------------------|
-| Display | 🟢 | Working but no brightness control (use gnome extension)|
 | WIFI/BT | 🟢 | Working |
 | Battery Monitor | 🟢 | Working |
 | Battery Charging | 🟢 | Working |
 | Keyboard/Trackpad | 🟢 | Working |
 | USB | 🟢 | Working |
+| Display | 🟡 | Occasional freeze and no brightness control (use gnome extension)|
 | Power Management | 🟡 | Usable but poor battery life |
 | Sleep/suspend | 🟡 | Sometimes unable to wake from sleep/suspend |
 | GPU | 🟡 | Acceleration seems to work, but doesn't seem energy efficient|
 | Audio | 🟡 | EXPERIMENTAL Pipewire patch over 7455 topology
-| Camera | 🟡 | EXPERIMENTAL Poor quality |
+| Camera | 🟡 | EXPERIMENTAL Uncalibrated |
 
 ### How to generate the DTB
 Run these commands within your local kernel source tree to compile the device tree binary:
@@ -312,4 +312,4 @@ Then:
 sudo update-grub
 sudo reboot
 ```
-Camera should work but be poor quality, fps and color seem wrong 
+Camera should work but needs calibration file 
