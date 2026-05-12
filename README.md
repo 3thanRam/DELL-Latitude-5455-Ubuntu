@@ -255,14 +255,6 @@ sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/raw/video
 ```
 Find qcvss8380.mbn in windows partition and move to /lib/firmware/qcom/x1e80100/dell/latitude-7455/
 
-Additionally I experienced display freezing which I think is due to vulkan so i switched over to gl
-
-```bash
-echo 'GSK_RENDERER=gl' | sudo tee -a /etc/environment
-echo 'VK_ICD_FILENAMES=/dev/null' | sudo tee -a /etc/environment
-sudo reboot
-```
-
 ## Sound
 
 Attempt this at your own risk this could damage your speakers
