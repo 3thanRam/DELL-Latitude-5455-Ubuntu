@@ -24,10 +24,10 @@ https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
 | Sleep/suspend | 🟡 | Sometimes unable to wake from sleep/suspend |
 | GPU | 🟡 | Acceleration seems to work, but doesn't seem energy efficient|
 | Audio | 🟡 | EXPERIMENTAL Pipewire patch over 7455 topology
-| Camera | 🟡 | EXPERIMENTAL Uncalibrated |
+| Camera | 🟡 | Uncalibrated |
 
 ### How to generate the DTB
-Run these commands within your local kernel source tree to compile the device tree binary:
+Run these commands within your local kernel source tree to compile the device tree binary: (note I'm using Torvalds' tree as an example but often custom forks from members active on ubuntu concept can result in better performance and compatibility)
 
 ```bash
 # Clone and navigate to the Snapdragon dts directory
@@ -92,6 +92,8 @@ sudo mkfs.vfat -F32 -n UBUNTU_USB /dev/sdX1
 
 ## Step 2 — Mount the ISO and USB
 
+Note: I'm using plucky-desktop-arm64+x1e.iso because it is what I used but at the time of editing this, there is a more recent version.
+
 ```bash
 sudo mkdir -p /mnt/iso /mnt/usb
 
@@ -125,12 +127,6 @@ Create the DTB directory and copy your DTB:
 ```bash
 sudo mkdir -p /mnt/usb/casper/dtbs/qcom
 sudo cp x1e80100-dell-latitude-7455.dtb /mnt/usb/casper/dtbs/qcom/
-```
-
-Verify:
-
-```bash
-ls /mnt/usb/casper/dtbs/qcom
 ```
 
 ---
@@ -186,6 +182,8 @@ Create a custom GRUB script to ensure your Snapdragon-specific kernel and DTB ar
 1. Create the script:
 `sudo nano /etc/grub.d/09_snapdragon`
 2. Paste the following configuration:
+
+Note: replace vmlinuz-6.17.0-8-qcom-x1e/initrd.img-6.17.0-8-qcom-x1e with whatever kernel versions you're using.
 
 ```sh
 #!/bin/sh
@@ -269,39 +267,4 @@ pactl set-default-sink $(pactl list sinks short | grep "Dell-5455-Stereo-Remap" 
 
 ## Camera
 
-Update kernel: to https://github.com/alexVinarskis/linux.git
-
-Recompile dts using that fork
-
-Add to /etc/grub.d/09_snapdragon :
-
-```bash
-menuentry 'Ubuntu Linaro Experimental (6.19)' --class ubuntu --class gnu-linux --class gnu --class os {
-    recordfail
-    load_video
-    insmod gzio
-    insmod part_gpt
-    insmod ext2
-    
-    # This searches for the drive dynamically at boot time
-    search --no-floppy --fs-uuid --set=root $root_uuid
-    
-    echo "Loading DeviceTree (Using original Ubuntu DTB)..."
-    # We are reusing the original DTB because the Linaro tree doesn't have the 5455 file yet.
-    devicetree /boot/dtbs/qcom/x1p64100-dell-latitude-5455.dtb
-    
-    echo "Loading Linux kernel 6.19..."
-    linux   /boot/vmlinuz-6.19.0-rc2+ root=UUID=$root_uuid ro quiet splash console=tty0 crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G-:4096M $vt_handoff
-    
-    echo "Loading initial ramdisk..."
-    initrd  /boot/initrd.img-6.19.0-rc2+
-}
-```
-
-Then:
-
-```bash
-sudo update-grub
-sudo reboot
-```
-Camera should work but needs calibration file 
+Camera should work on recent kernels but needs calibration file which makes it not ideal for casual use. 
