@@ -3,13 +3,14 @@ My attempt at getting Ubuntu running on the DELL Latitude 5455 (Snapdragon X Plu
 
 I don't know what I'm doing you can copy this at your own risk
 
+## Note 
 You should dual boot with windows in order to benefit from windows firmware updates and to extract firmware from windows partition
 
 some links:
 
-https://discourse.ubuntu.com/t/ubuntu-concept-snapdragon-x-elite/48800
+[Ubuntu Discourse](https://discourse.ubuntu.com/t/ubuntu-concept-snapdragon-x-elite/48800)
 
-https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
+[Bug report](https://bugs.launchpad.net/ubuntu-concept/+bug/2121289)
 
 
 | Feature | Status | Notes |
@@ -21,31 +22,25 @@ https://bugs.launchpad.net/ubuntu-concept/+bug/2121289
 | USB | 🟢 | Working |
 | Display | 🟡 | Occasional freeze and no brightness control (use gnome extension)|
 | Power Management | 🟡 | Usable but poor battery life |
+| Fan Management | 🟡 | Fans only kick in when very hot or under high strain  |
 | Sleep/suspend | 🟡 | Sometimes unable to wake from sleep/suspend |
 | GPU | 🟡 | Acceleration seems to work, but doesn't seem energy efficient|
 | Audio | 🟡 | EXPERIMENTAL Pipewire patch over 7455 topology
 | Camera | 🟡 | Uncalibrated |
 
-### How to generate the DTB
-Run these commands within your local kernel source tree to compile the device tree binary: (note I'm using Torvalds' tree as an example but often custom forks from members active on ubuntu concept can result in better performance and compatibility)
+## Note on processor variants
 
-```bash
-# Clone and navigate to the Snapdragon dts directory
-git clone https://github.com/torvalds/linux.git
-cd linux/arch/arm64/boot/dts/qcom/
+The Dell latitude 5455 comes in two Snapdragon X Plus variants: X1P-64-100 & X1P-42-100
 
-# Preprocess the DTS to handle includes and macros
-cpp -nostdinc -I . -I ../../../../include -I ../../../../../include -undef -x assembler-with-cpp x1p64100-dell-latitude-5455.dts x1p64100-dell-latitude-5455.dts.preprocessed
+This repo is about the X1P-64-100 version. Which is similar to the Dell latitude 7455 (X1E-80-100)
 
-# Compile the preprocessed file into a DTB
-dtc -I dts -O dtb -p 0x1000 x1p64100-dell-latitude-5455.dts.preprocessed -o x1p64100-dell-latitude-5455.dtb
+I don't believe the following works for the X1P-42-100 variant, there was progress made in the [Bug report](https://bugs.launchpad.net/ubuntu-concept/+bug/2121289), check either mainline or latest [jglathe](https://github.com/jglathe/linux_ms_dev_kit/tree/jg/ubuntu-qcom-x1e-7.1.3-jg-0) repository for progress on this.
 
-# Install the DTB to your boot directory
-mkdir -p /boot/dtbs/qcom/
-sudo cp x1p64100-dell-latitude-5455.dtb /boot/dtbs/qcom/
 
-```
----
+## DTB
+
+Since recent kernel updates my custom dts doesn't work and its much simpler to just use the dell latitude 7455 dtb
+
 
 ## Modify an Ubuntu ISO Using a Writable USB
 
@@ -92,12 +87,12 @@ sudo mkfs.vfat -F32 -n UBUNTU_USB /dev/sdX1
 
 ## Step 2 — Mount the ISO and USB
 
-Note: I'm using plucky-desktop-arm64+x1e.iso because it is what I used but at the time of editing this, there is a more recent version.
+Note: I'm using resolute-desktop-arm64+x1e-20260423_extended_jg.iso (from [here](https://drive.google.com/drive/folders/1sc_CpqOMTJNljfvRyLG-xdwB0yduje_O) by [jglathe](https://github.com/jglathe)) there may be a more recent version.
 
 ```bash
 sudo mkdir -p /mnt/iso /mnt/usb
 
-sudo mount -o loop ~/Downloads/plucky-desktop-arm64+x1e.iso /mnt/iso
+sudo mount -o loop ~/Downloads/resolute-desktop-arm64+x1e-20260423_extended_jg.iso /mnt/iso
 sudo mount /dev/sdX1 /mnt/usb
 ```
 
@@ -117,21 +112,31 @@ Unmount the ISO:
 ```bash
 sudo umount /mnt/iso
 ```
-
 ---
 
-## Step 4 — Add the Device Tree Blob (DTB)
+## Step 4 — Find the Dell latitude 7455 Device Tree Blob (DTB)
 
-Create the DTB directory and copy your DTB:
-
+Find the DTB:
 ```bash
-sudo mkdir -p /mnt/usb/casper/dtbs/qcom
-sudo cp x1e80100-dell-latitude-7455.dtb /mnt/usb/casper/dtbs/qcom/
+unsquashfs -l /mnt/usb/casper/minimal.squashfs | grep -E "7455.dtb"
+```
+Extract the DTB: (change dtb path to whatever you found previously)
+```bash
+sudo unsquashfs -d /tmp/extracted_dtb /mnt/usb/casper/minimal.squashfs path/to/dtb/x1e80100-dell-latitude-7455.dtb
 ```
 
 ---
 
-## Step 5 — Edit GRUB Configuration (Critical)
+## Step 5 — Add the Device Tree Blob
+
+Copy the 7455 DTB:
+```bash
+sudo cp /tmp/extracted_dtb/path/to/dtb/x1e80100-dell-latitude-7455.dtb /mnt/usb/
+```
+
+---
+
+## Step 6 — Edit GRUB Configuration (Critical)
 
 Open GRUB config:
 
@@ -139,7 +144,7 @@ Open GRUB config:
 sudo nano /mnt/usb/boot/grub/grub.cfg
 ```
 
-### 5.1 Enable GRUB terminal output
+### 6.1 Enable GRUB terminal output
 
 Add **near the top of the file**, outside any `menuentry`:
 
@@ -147,16 +152,16 @@ Add **near the top of the file**, outside any `menuentry`:
 terminal_output gfxterm
 ```
 
-### 5.2 Modify the Ubuntu menu entry
+### 6.2 Modify the Ubuntu menu entry
 
-Replace the existing entry with:
+Add a new entry:
 
 ```cfg
 menuentry "Try or Install Ubuntu" {
     set gfxpayload=keep
-    devicetree /casper/dtbs/qcom/x1e80100-dell-latitude-7455.dtb
-    linux   /casper/vmlinuz $cmdline --- quiet splash console=tty0
+    linux   /casper/vmlinuz $cmdline --- quiet splash clk_ignore_unused pd_ignore_unused console=tty0
     initrd  /casper/initrd
+    devicetree /x1e80100-dell-latitude-7455.dtb
 }
 ```
 
@@ -164,74 +169,14 @@ Save and exit.
 
 ---
 
-## Step 6 — Final Sync and Unmount
+## Step 7 — Final Sync and Unmount
 
 ```bash
 sync
 sudo umount /mnt/usb
 ```
-
-## Boot 
-
-## Then copy x1p64100-dell-latitude-5455.dtb x1e80100-dell-latitude-7455.dtb and to /boot/dts/qcom/ and link the grub config to the 5455 dtb file
-
-### Make a new GRUB entry
-
-Create a custom GRUB script to ensure your Snapdragon-specific kernel and DTB are loaded first.
-
-1. Create the script:
-`sudo nano /etc/grub.d/09_snapdragon`
-2. Paste the following configuration:
-
-Note: replace vmlinuz-6.17.0-8-qcom-x1e/initrd.img-6.17.0-8-qcom-x1e with whatever kernel versions you're using.
-
-```sh
-#!/bin/sh
-set -e
-
-# These variables are provided by the GRUB environment when update-grub runs
-. /usr/share/grub/grub-mkconfig_lib
-
-# Automatically detect the root device and UUID
-root_device=$(grub-probe --target=device /)
-root_uuid=$(grub-probe --device $root_device --target=fs_uuid)
-
-echo "Found root UUID: $root_uuid" >&2
-
-cat << EOF
-menuentry 'Ubuntu Snapdragon' --class ubuntu --class gnu-linux --class gnu --class os {
-    recordfail
-    load_video
-    insmod gzio
-    insmod part_gpt
-    insmod ext2
-    
-    # This searches for the drive dynamically at boot time
-    search --no-floppy --fs-uuid --set=root $root_uuid
-    
-    echo "Loading DeviceTree..."
-    devicetree /boot/dtbs/qcom/x1p64100-dell-latitude-5455.dtb
-    
-    echo "Loading Linux kernel..."
-    linux   /boot/vmlinuz-6.17.0-8-qcom-x1e root=UUID=$root_uuid ro quiet splash console=tty0 crashkernel=2G-4G:320M,4G-32G:512M,32G-64G:1024M,64G-128G-:4096M \$vt_handoff
-    
-    echo "Loading initial ramdisk..."
-    initrd  /boot/initrd.img-6.17.0-8-qcom-x1e
-}
-EOF
-
-```
-
-3. Make the script executable and update GRUB:
-
-```bash
-sudo chmod +x /etc/grub.d/09_snapdragon
-sudo update-grub
-```
-
-##  Fix battery
-Boot once into x1e80100-dell-latitude-7455.dtb (simply change the grub using e command when in grub menu) and then run:
-
+##  Generic Firmware Fixes 
+If you lack a battery percentage indicator or specific platform sensors after initial boot, extract your system specifics:
 ```bash
 sudo apt install qcom-firmware-extract
 sudo qcom-firmware-extract
@@ -241,30 +186,19 @@ Then
 sudo apt install ubuntu-x1e-settings
 ```
 
-Copy contents of /lib/firmware/updates/qcom/x1e80100/dell/latitude-7455/ to /lib/firmware/qcom/x1e80100/dell/latitude-7455/
-
 ##  GPU
 
+If acceleration fails to load, extract qcvss8380.mbn from your Windows driver partitions and save it directly under:
 ```bash
-cd /lib/firmware/qcom/x1e80100/dell/latitude-7455/
-sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/raw/video-firmware/qcom/gen70500_sqe.fw
-sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/raw/video-firmware/qcom/gen70500_gmu.bin
-sudo wget https://git.codelinaro.org/clo/linux-kernel/linux-firmware/-/raw/video-firmware/qcom/x1e80100/gen70500_zap.mbn
+/lib/firmware/qcom/x1e80100/dell/latitude-7455/
 ```
-Find qcvss8380.mbn in windows partition and move to /lib/firmware/qcom/x1e80100/dell/latitude-7455/
-
 ## Sound
 
-Attempt this at your own risk this could damage your speakers
+Warning: Attempt this at your own risk this could damage your speakers:
 
 ```bash
-cd /lib/firmware/qcom/x1e80100/dell/latitude-7455/
-sudo ln -sf X1E80100-EVK-tplg.bin X1E80100-Dell-Latitude-7455-tplg.bin
 mkdir -p ~/.config/pipewire/pipewire.conf.d
 cp ~/Downloads/99-dell-5455-remap.conf ~/.config/pipewire/pipewire.conf.d/99-dell-5455-remap.conf
 pactl set-default-sink $(pactl list sinks short | grep "Dell-5455-Stereo-Remap" | awk '{print $2}')
 ```
-
-## Camera
-
-Camera should work on recent kernels but needs calibration file which makes it not ideal for casual use. 
+This works on my laptop but even max volume is very low.
