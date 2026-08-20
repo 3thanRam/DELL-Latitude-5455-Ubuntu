@@ -12,6 +12,11 @@ some links:
 
 [Bug report](https://bugs.launchpad.net/ubuntu-concept/+bug/2121289)
 
+[jglathe/linux_ms_dev_kit](https://github.com/jglathe/linux_ms_dev_kit)
+
+[IRC aarch64-laptops](https://oftc.catirclogs.org/aarch64-laptops/)
+
+[qcom-laptops](https://github.com/linux-msm/laptops-kernel/tree/qcom-laptops)
 
 | Feature | Status | Notes |
 | ----------------------- | :---: |------------------------------------------------------------------------------------------------------------|
@@ -20,10 +25,10 @@ some links:
 | Battery Charging | 🟢 | Working |
 | Keyboard/Trackpad | 🟢 | Working |
 | USB | 🟢 | Working |
-| Display | 🟡 | Occasional freeze and no brightness control (use gnome extension)|
+| Sleep/suspend | 🟢 | Working |
+| Display | 🟢 | Fully working on [this kernel](https://github.com/jglathe/linux_ms_dev_kit/tree/jg/ubuntu-qcom-x1e-7.2.y)|
 | Power Management | 🟡 | Usable but poor battery life |
 | Fan Management | 🟡 | Fans only kick in when very hot or under high strain  |
-| Sleep/suspend | 🟡 | Sometimes unable to wake from sleep/suspend |
 | GPU | 🟡 | Acceleration seems to work, but doesn't seem energy efficient|
 | Audio | 🟡 | EXPERIMENTAL Pipewire patch over 7455 topology
 | Camera | 🟡 | Uncalibrated |
@@ -41,6 +46,7 @@ I don't believe the following works for the X1P-42-100 variant, there was progre
 
 Since recent kernel updates my custom dts doesn't work and its much simpler to just use the dell latitude 7455 dtb
 
+Update: If using [this kernel](https://github.com/jglathe/linux_ms_dev_kit/tree/jg/ubuntu-qcom-x1e-7.2.y) then you can use x1p64100-dell-latitude-5455.dtb which adds display brightness control but at the time of writing I don't believe there is an ISO based on this kernel available so I would use still use the 7455 dtb for initial install then switch to the 5455.
 
 ## Modify an Ubuntu ISO Using a Writable USB
 
@@ -202,3 +208,21 @@ cp ~/Downloads/99-dell-5455-remap.conf ~/.config/pipewire/pipewire.conf.d/99-del
 pactl set-default-sink $(pactl list sinks short | grep "Dell-5455-Stereo-Remap" | awk '{print $2}')
 ```
 This works on my laptop but even max volume is very low.
+
+## Display
+
+Thanks to the amazing [jglathe](https://github.com/jglathe) and their latest [kernel](https://github.com/jglathe/linux_ms_dev_kit/tree/jg/ubuntu-qcom-x1e-7.2.y) we can control the display brightness without relying on alpha/ software brightness hack. 
+
+This requires using their custom dell latitude 5455 x1p64100 dtb. This may require copying firmware (from /lib/firmware/qcom/x1e80100/dell/latitude-7455/
+ and windows partition) into a new /lib/firmware/qcom/x1e80100/dell/latitude-5455/ directory
+ 
+
+However for it to work on my machine I needed to add this line to the dts:
+```bash
+&pmk8550_pwm {
+        status = "okay";
+};
+```
+Then recompiling.
+
+The default brightness made it seem like the screen was off but using brightnessctl through ssh I was able to increase the brightness then after login everything worked great. 
