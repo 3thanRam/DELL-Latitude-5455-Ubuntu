@@ -27,10 +27,10 @@ some links:
 | USB | 🟢 | Working |
 | Sleep/suspend | 🟢 | Working |
 | Display | 🟢 | Fully working on [this kernel](https://github.com/jglathe/linux_ms_dev_kit/tree/jg/ubuntu-qcom-x1e-7.2.y)|
-| Power Management | 🟡 | Usable but poor battery life |
-| Fan Management | 🟡 | Fans only kick in when very hot or under high strain  |
+| Fan Management | 🟢 | EXPERIMENTAL thermal management and fan control |
+| Audio | 🟢 | EXPERIMENTAL use of 7455 topology|
+| Power Management | 🟡 | Usable but sub-Windows battery life |
 | GPU | 🟡 | Acceleration seems to work, but doesn't seem energy efficient|
-| Audio | 🟡 | EXPERIMENTAL use of 7455 topology
 | Camera | 🟡 | Uncalibrated |
 
 ## Note on processor variants
@@ -475,3 +475,459 @@ However for it to work on my machine I needed to add this line to the dts:
 Then recompiling.
 
 The default brightness made it seem like the screen was off but using brightnessctl through ssh I was able to increase the brightness then after login everything worked great. 
+
+
+## EC Thermal / Fan Management
+
+> **Warning**
+>
+> This is experimental support based on the Dell XPS 13 9345 EC driver and the Dell Thena device-tree implementation.
+> Test at your own risk.
+
+### Overview
+
+The Dell Latitude 5455 uses a Dell Embedded Controller (EC) for platform thermal management and fan control.
+
+Linux does not directly set fan PWM with this implementation. Instead:
+
+1. Linux reads board thermistors through the Qualcomm PMIC ADC.
+2. The `dell-xps-ec` driver forwards those temperatures to the EC every 100 ms.
+3. The EC applies its own fan-control policy.
+
+The stock kernel configuration used here was missing some of the required support, so three pieces are needed:
+
+1. Device-tree support for the Dell EC and thermistors
+2. Qualcomm PMIC ADC5 Gen3 support
+3. The Dell EC driver
+
+---
+
+### 1. Device-tree EC support
+
+The EC support is based on [Val Packett](https://github.com/valpackett)'s [Thena EC implementation](https://github.com/valpackett/linux-qclaptops/commit/28a7eb40940c1d9f61be221e4f5832c8705bcca7) :
+
+```text
+arm64: dts: qcom: x1-dell-thena: add EC
+```
+
+The EC is connected over I2C at address:
+
+```text
+0x3b
+```
+
+and uses GPIO66 for its interrupt.
+
+The EC node is approximately:
+
+```dts
+embedded-controller@3b {
+        compatible = "dell,xps13-9345-ec";
+        reg = <0x3b>;
+
+        interrupts-extended = <&tlmm 66 IRQ_TYPE_LEVEL_LOW>;
+
+        pinctrl-0 = <&ec_int_n_default>;
+        pinctrl-names = "default";
+
+        io-channels = <&pmk8550_adc_tm ...>;
+        io-channel-names = "sys_therm0", "sys_therm1", "sys_therm2",
+                           "sys_therm3", "sys_therm4", "sys_therm5",
+                           "sys_therm6";
+
+        wakeup-source;
+};
+```
+
+GPIO65 should remain reserved because it is the EC reset line.
+
+### Compatibility changes for this kernel tree
+
+The Thena EC patch was written against a slightly different DT-binding layout.
+
+The PM8350 ADC7 wrapper originally included:
+
+```c
+#include <dt-bindings/iio/qcom,spmi-vadc.h>
+```
+
+but this kernel tree uses the newer path:
+
+```c
+#include <dt-bindings/iio/adc/qcom,spmi-vadc.h>
+```
+
+The original Thena patch also references:
+
+```dts
+&pmk8550_vadc
+```
+
+while this kernel tree labels the same ADC controller as:
+
+```dts
+&pmk8550_adc_tm
+```
+
+Therefore the Thena EC additions must use:
+
+```dts
+&pmk8550_adc_tm
+```
+
+instead.
+
+---
+
+### 2. Enable Qualcomm ADC5 Gen3
+
+The PMK8550 ADC controller on this kernel tree is described as:
+
+```dts
+compatible = "qcom,spmi-adc5-gen3";
+```
+
+The installed kernel configuration originally had:
+
+```text
+# CONFIG_QCOM_SPMI_ADC5_GEN3 is not set
+```
+
+The required driver is:
+
+```text
+CONFIG_QCOM_SPMI_ADC5_GEN3=m
+```
+
+which builds:
+
+```text
+qcom-spmi-adc5-gen3.ko
+```
+
+Without this driver, the EC remains in deferred probe because its IIO thermistor channels do not exist.
+
+A working setup should expose an IIO device similar to:
+
+```text
+/sys/bus/iio/devices/iio:device0
+```
+
+with:
+
+```text
+name: spmi-adc5-gen3
+```
+
+For example:
+
+```bash
+cat /sys/bus/iio/devices/iio:device0/name
+```
+
+should return:
+
+```text
+spmi-adc5-gen3
+```
+
+---
+
+### 3. Dell EC driver
+
+The EC driver is:
+
+```text
+drivers/platform/arm64/dell-xps-ec.c
+```
+
+and matches:
+
+```text
+compatible = "dell,xps13-9345-ec";
+```
+
+The driver periodically reads board thermistors through IIO and sends the temperatures to the EC every 100 ms.
+
+A successful probe produces:
+
+```text
+dell-xps-ec 5-003b: Started periodic temperature reporting to EC every 100 ms
+```
+
+The driver should also bind to:
+
+```text
+/sys/bus/i2c/drivers/dell-xps-ec/5-003b
+```
+
+---
+
+### Latitude 5455 thermistor differences
+
+On the Latitude 5455, five of the seven thermistor channels produce plausible changing temperatures:
+
+```text
+sys_therm1
+sys_therm2
+sys_therm3
+sys_therm4
+sys_therm5
+```
+
+Two channels appear to be invalid or unconnected on this model:
+
+```text
+sys_therm0 = 130.048 C
+sys_therm6 = -40.960 C
+```
+
+Both values remain fixed and appear to represent ADC saturation / endpoint values rather than real temperatures.
+
+These two channels should therefore not be forwarded to the EC.
+
+### Safe Latitude 5455 reporting table
+
+The original driver contains:
+
+```c
+static const struct {
+        const char *name;
+        u8 cmd;
+} dell_xps_ec_therms[] = {
+        { "sys_therm0", 0x02 },
+        { "sys_therm1", 0x03 },
+        { "sys_therm2", 0x04 },
+        { "sys_therm3", 0x05 },
+        { "sys_therm4", 0x06 },
+        { "sys_therm5", 0x07 },
+        { "sys_therm6", 0x08 },
+};
+```
+
+For the Latitude 5455, use:
+
+```c
+static const struct {
+        const char *name;
+        u8 cmd;
+} dell_xps_ec_therms[] = {
+        { "sys_therm1", 0x03 },
+        { "sys_therm2", 0x04 },
+        { "sys_therm3", 0x05 },
+        { "sys_therm4", 0x06 },
+        { "sys_therm5", 0x07 },
+};
+```
+
+The EC thermistor profile itself should remain unchanged for now.
+
+---
+
+### 4. Build the ADC5 Gen3 module externally
+
+If the running kernel was built without:
+
+```text
+CONFIG_QCOM_SPMI_ADC5_GEN3
+```
+
+the driver can be built as an external module against the installed kernel headers.
+
+Required source files:
+
+```text
+drivers/iio/adc/qcom-spmi-adc5-gen3.c
+include/linux/iio/adc/qcom-adc5-gen3-common.h
+```
+
+Example external-module Makefile:
+
+```make
+obj-m := qcom-spmi-adc5-gen3.o
+
+ccflags-y += -I$(src)/include
+```
+
+Build with:
+
+```bash
+make -C /lib/modules/$(uname -r)/build M="$PWD" modules
+```
+
+Verify the module matches the running kernel:
+
+```bash
+modinfo ./qcom-spmi-adc5-gen3.ko | grep vermagic
+uname -r
+```
+
+Install:
+
+```bash
+sudo cp qcom-spmi-adc5-gen3.ko \
+  /lib/modules/$(uname -r)/extra/
+
+sudo depmod -a
+```
+
+Load:
+
+```bash
+sudo modprobe qcom-spmi-adc5-gen3
+```
+
+---
+
+### 5. Build the Dell EC module externally
+
+The Dell EC driver can also be built as an external module against the running kernel headers.
+
+Example Makefile:
+
+```make
+obj-m := dell-xps-ec.o
+```
+
+Build:
+
+```bash
+make -C /lib/modules/$(uname -r)/build M="$PWD" modules
+```
+
+Verify:
+
+```bash
+modinfo ./dell-xps-ec.ko | grep vermagic
+```
+
+Install:
+
+```bash
+sudo cp dell-xps-ec.ko \
+  /lib/modules/$(uname -r)/extra/
+
+sudo depmod -a
+```
+
+Load:
+
+```bash
+sudo modprobe dell_xps_ec
+```
+
+---
+
+### 6. Load automatically at boot
+
+After both modules have been installed under the running kernel module directory and `depmod` has been run, create:
+
+```text
+/etc/modules-load.d/dell-ec.conf
+```
+
+containing:
+
+```text
+qcom-spmi-adc5-gen3
+dell-xps-ec
+```
+
+For example:
+
+```bash
+sudo tee /etc/modules-load.d/dell-ec.conf >/dev/null <<'EOF'
+qcom-spmi-adc5-gen3
+dell-xps-ec
+EOF
+```
+
+---
+
+### 7. Verification
+
+Check that both modules are loaded:
+
+```bash
+lsmod | grep -E 'qcom_spmi_adc5_gen3|dell_xps_ec'
+```
+
+Check the IIO ADC device:
+
+```bash
+ls -l /sys/bus/iio/devices/
+cat /sys/bus/iio/devices/iio:device0/name
+```
+
+Check thermistor values:
+
+```bash
+for f in /sys/bus/iio/devices/iio:device0/in_temp*_input; do
+        printf '%-25s ' "$f"
+        cat "$f"
+done
+```
+
+Check thermistor labels:
+
+```bash
+for f in /sys/bus/iio/devices/iio:device0/in_temp*_label; do
+        printf '%-25s ' "$f"
+        cat "$f"
+done
+```
+
+Check EC binding:
+
+```bash
+readlink -f /sys/bus/i2c/devices/5-003b/driver
+```
+
+Expected:
+
+```text
+/sys/bus/i2c/drivers/dell-xps-ec
+```
+
+Check kernel log:
+
+```bash
+sudo dmesg | grep -Ei \
+'dell.xps|temperature reporting|adc5|5-003b'
+```
+
+Expected:
+
+```text
+dell-xps-ec 5-003b: Started periodic temperature reporting to EC every 100 ms
+```
+
+---
+
+### Limitations
+
+This does **not** currently expose direct manual fan-speed control to Linux.
+
+There is currently no standard hwmon interface such as:
+
+```text
+fan1_input
+fan2_input
+pwm1
+```
+
+The Dell EC remains responsible for choosing fan speed based on the temperatures supplied by Linux.
+
+As a result, tools such as:
+
+```text
+lm-sensors
+fancontrol
+pwmconfig
+Psensor
+```
+
+cannot currently display fan RPM or directly control the fans.
+
+Adding fan RPM reporting or manual fan control would require further reverse engineering of the Dell EC I2C protocol and extending `dell-xps-ec`.
+
