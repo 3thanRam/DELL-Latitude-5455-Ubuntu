@@ -26,12 +26,12 @@ some links:
 | Keyboard/Trackpad | 🟢 | Working |
 | USB | 🟢 | Working |
 | Sleep/suspend | 🟢 | Working |
-| Display | 🟢 | Fully working on [this kernel](https://github.com/jglathe/linux_ms_dev_kit/tree/jg/ubuntu-qcom-x1e-7.2.y)|
-| Fan Management | 🟢 | EXPERIMENTAL thermal management and fan control |
-| Audio | 🟢 | EXPERIMENTAL use of 7455 topology|
+| [Camera](#camera-calibration) | 🟢 | Working |
+| [Display](#display) | 🟢 | Fully working on [this kernel](https://github.com/jglathe/linux_ms_dev_kit/tree/jg/ubuntu-qcom-x1e-7.2.y)|
+| [Fan Management](#ec-thermal--fan-management)| 🟢 | EXPERIMENTAL thermal management and fan control |
+| [Audio](#audio) | 🟢 | EXPERIMENTAL use of 7455 topology|
 | Power Management | 🟡 | Usable but sub-Windows battery life |
-| GPU | 🟡 | Acceleration seems to work, but doesn't seem energy efficient|
-| Camera | 🟡 | Uncalibrated |
+| [GPU](#gpu)| 🟡 | Acceleration seems to work, but doesn't seem energy efficient|
 
 ## Note on processor variants
 
@@ -198,7 +198,36 @@ If acceleration fails to load, extract qcvss8380.mbn from your Windows driver pa
 ```bash
 /lib/firmware/qcom/x1e80100/dell/latitude-7455/
 ```
-## Sound
+
+## Camera calibration
+
+Ubuntu's packaged libcamera 0.7.0 works, but newer upstream 0.7.2 contains important Simple/Software ISP fixes and produces better results.
+
+I therefore use a locally built libcamera 0.7.2.
+
+For image tuning, I currently use the OV02E10 tuning file from the [Samsung Galaxy Book Linux fixes project](https://github.com/Andycodeman/samsung-galaxy-book-linux-fixes/blob/main/webcam-fix-book5/ov02e10.yaml) as a starting point:
+
+This significantly improves colour reproduction compared with the default/uncalibrated Simple IPA output.
+
+The sensor is the same OmniVision OV02E10, but the tuning was created for a Samsung Galaxy Book 5 Pro, so it should be considered provisional rather than a Dell-specific calibration. The black level has been independently verified on the Latitude 5455 at 64 RAW10 codes (4096 in libcamera's 16-bit representation).
+
+A separate local libcamera change is also currently required to avoid flicker under 50 Hz lighting by limiting the maximum exposure to approximately 30 ms:
+In:
+```bash
+src/ipa/simple/soft_simple.cpp
+```
+change:
+```bash
+context_.configuration.agc.exposureMax =
+    exposureInfo.max().get<int32_t>();
+```
+to:
+```bash
+context_.configuration.agc.exposureMax =
+    std::min(exposureInfo.max().get<int32_t>(), 2023);
+```
+
+## Audio
 
 > **Warning**
 >
@@ -458,6 +487,7 @@ On my Latitude 5455:
 - Headphone output is still being investigated; jack detection works, but ACP/UCM mixer handling still needs cleanup.
 
 This is therefore still experimental rather than a finished upstream-quality audio configuration.
+
 ## Display
 
 Thanks to the amazing [jglathe](https://github.com/jglathe) and their latest [kernel](https://github.com/jglathe/linux_ms_dev_kit/tree/jg/ubuntu-qcom-x1e-7.2.y) we can control the display brightness without relying on alpha/ software brightness hack. 
