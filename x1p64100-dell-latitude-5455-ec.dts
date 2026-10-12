@@ -1,0 +1,278 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2025 Val Packett <val@packett.cool>
+ *
+ * Dell Latitude 5455 (X1P-64-100)
+ * Additional EC thermal, fan and backlight support.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/iio/adc/qcom,pm8550-adc5-gen3.h>
+
+#include "hamoa.dtsi"
+#include "x1-dell-thena.dtsi"
+
+/ {
+        model = "Dell Latitude 5455";
+        compatible = "dell,latitude-5455", "qcom,x1e80100";
+
+        backlight: backlight {
+                compatible = "pwm-backlight";
+                pwms = <&pmk8550_pwm 0 4166667>;
+
+                power-supply = <&vreg_edp_3p3>;
+        };
+};
+
+/* Sound */
+
+&sound {
+        model = "X1E80100-Dell-Latitude-5455";
+
+        displayport-0-dai-link {
+                link-name = "DisplayPort0 Playback";
+
+                codec {
+                        sound-dai = <&mdss_dp0>;
+                };
+
+                cpu {
+                        sound-dai = <&q6apmbedai DISPLAY_PORT_RX_0>;
+                };
+
+                platform {
+                        sound-dai = <&q6apm>;
+                };
+        };
+
+        displayport-1-dai-link {
+                link-name = "DisplayPort1 Playback";
+
+                codec {
+                        sound-dai = <&mdss_dp1>;
+                };
+
+                cpu {
+                        sound-dai = <&q6apmbedai DISPLAY_PORT_RX_1>;
+                };
+
+                platform {
+                        sound-dai = <&q6apm>;
+                };
+        };
+};
+
+/* GPU */
+
+&gpu {
+        status = "okay";
+};
+
+&gpu_zap_shader {
+        firmware-name =
+                "qcom/x1e80100/dell/latitude-5455/qcdxkmsuc8380.mbn";
+};
+
+/* Backlight */
+
+&pmk8550_pwm {
+        status = "okay";
+};
+
+&dp3_panel {
+        backlight = <&backlight>;
+};
+
+/* Touchscreen */
+
+&i2c8 {
+        /* LXST2021 */
+        touchscreen@9 {
+                compatible = "hid-over-i2c";
+                reg = <0x09>;
+
+                hid-descr-addr = <0x1>;
+                interrupts-extended =
+                        <&tlmm 51 IRQ_TYPE_LEVEL_LOW>;
+
+                pinctrl-0 = <&ts0_default>;
+                pinctrl-names = "default";
+        };
+};
+
+/* Video codec */
+
+&iris {
+        firmware-name =
+                "qcom/x1e80100/dell/latitude-5455/qcvss8380.mbn";
+        status = "okay";
+};
+
+/* DSP firmware */
+
+&remoteproc_adsp {
+        firmware-name =
+                "qcom/x1e80100/dell/latitude-5455/qcadsp8380.mbn",
+                "qcom/x1e80100/dell/latitude-5455/adsp_dtbs.elf";
+
+        status = "okay";
+};
+
+&remoteproc_cdsp {
+        firmware-name =
+                "qcom/x1e80100/dell/latitude-5455/qccdsp8380.mbn",
+                "qcom/x1e80100/dell/latitude-5455/cdsp_dtbs.elf";
+
+        status = "okay";
+};
+
+/*
+ * Embedded Controller
+ *
+ * I2C address: 0x3b
+ * Interrupt: GPIO66, active low
+ *
+ * The Latitude 5455 currently has six confirmed
+ * usable thermistor channels:
+ *
+ *   sys_therm0
+ *   sys_therm1 -> EC command 0x03
+ *   sys_therm2 -> EC command 0x04
+ *   sys_therm3 -> EC command 0x05
+ *   sys_therm4 -> EC command 0x06
+ *   sys_therm5 -> EC command 0x07
+ *
+ * sys_therm6 return implausible constant values, so it isn't forwarded to EC.
+ */
+
+&i2c5 {
+        embedded-controller@3b {
+                compatible = "dell,xps13-9345-ec";
+                reg = <0x3b>;
+
+                interrupts-extended =
+                        <&tlmm 66 IRQ_TYPE_LEVEL_LOW>;
+
+                pinctrl-0 = <&ec_int_n_default>;
+                pinctrl-names = "default";
+
+                io-channels =
+                    <&pmk8550_adc_tm PM8550_ADC5_GEN3_AMUX1_GPIO3_100K_PU(1)>,
+                    <&pmk8550_adc_tm PM8550_ADC5_GEN3_AMUX2_GPIO4_100K_PU(1)>,
+                    <&pmk8550_adc_tm PM8550_ADC5_GEN3_AMUX_THM1_100K_PU(1)>,
+                    <&pmk8550_adc_tm PM8550_ADC5_GEN3_AMUX_THM2_100K_PU(1)>,
+                    <&pmk8550_adc_tm PM8550_ADC5_GEN3_AMUX_THM3_100K_PU(1)>,
+                    <&pmk8550_adc_tm PM8550_ADC5_GEN3_AMUX_THM4_100K_PU(1)>;
+
+                io-channel-names =
+                    "sys_therm0",
+                    "sys_therm1",
+                    "sys_therm2",
+                    "sys_therm3",
+                    "sys_therm4",
+                    "sys_therm5";
+
+                wakeup-source;
+        };
+};
+
+/*
+ * PMK8550 ADC5 Gen3 thermistors
+ *
+ * All seven channels are exposed for diagnostics,
+ * including channel(s) that currently return
+ * implausible constant temperatures.
+ *
+ * Only six channels are referenced by the EC above.
+ */
+
+&pmk8550_adc_tm {
+        /* sys_therm0  */
+        channel@14c {
+                reg =
+                        <PM8550_ADC5_GEN3_AMUX1_GPIO3_100K_PU(1)>;
+                label = "sys_therm0";
+                qcom,hw-settle-time = <100>;
+                qcom,ratiometric;
+        };
+
+        /* sys_therm1 */
+        channel@14d {
+                reg =
+                        <PM8550_ADC5_GEN3_AMUX2_GPIO4_100K_PU(1)>;
+                label = "sys_therm1";
+                qcom,hw-settle-time = <100>;
+                qcom,ratiometric;
+        };
+
+        /* sys_therm2 */
+        channel@144 {
+                reg =
+                        <PM8550_ADC5_GEN3_AMUX_THM1_100K_PU(1)>;
+                label = "sys_therm2";
+                qcom,hw-settle-time = <100>;
+                qcom,ratiometric;
+        };
+
+        /* sys_therm3 */
+        channel@145 {
+                reg =
+                        <PM8550_ADC5_GEN3_AMUX_THM2_100K_PU(1)>;
+                label = "sys_therm3";
+                qcom,hw-settle-time = <100>;
+                qcom,ratiometric;
+        };
+
+        /* sys_therm4 */
+        channel@146 {
+                reg =
+                        <PM8550_ADC5_GEN3_AMUX_THM3_100K_PU(1)>;
+                label = "sys_therm4";
+                qcom,hw-settle-time = <100>;
+                qcom,ratiometric;
+        };
+
+        /* sys_therm5 */
+        channel@147 {
+                reg =
+                        <PM8550_ADC5_GEN3_AMUX_THM4_100K_PU(1)>;
+                label = "sys_therm5";
+                qcom,hw-settle-time = <100>;
+                qcom,ratiometric;
+        };
+
+        /* sys_therm6: currently reads ~-40.960 C */
+        channel@148 {
+                reg =
+                        <PM8550_ADC5_GEN3_AMUX_THM5_100K_PU(1)>;
+                label = "sys_therm6";
+                qcom,hw-settle-time = <100>;
+                qcom,ratiometric;
+        };
+};
+
+/*
+ * EC GPIO configuration
+ *
+ * GPIO65: EC reset, reserved from general GPIO use
+ * GPIO66: EC interrupt, active low
+ *
+ * Preserve the reserved GPIO ranges from
+ * x1-dell-thena.dtsi, adding only GPIO65.
+ */
+
+&tlmm {
+        gpio-reserved-ranges =
+                <44 4>,   /* SPI11 (TPM) */
+                <65 1>,   /* EC reset */
+                <76 4>,   /* SPI19 (TZ protected) */
+                <80 2>,   /* I2C20 (battery SMBus) */
+                <238 1>;  /* UFS reset */
+
+        ec_int_n_default: ec-int-n-state {
+                pins = "gpio66";
+                function = "gpio";
+                bias-disable;
+        };
+};
